@@ -43,6 +43,7 @@
     "@talismn/dot-pool-selector": "snapshot",
     "@talismn/icons": "workspace:^",
     "@talismn/math": "workspace:^",
+    "@talismn/nft": "workspace:^",
     "@talismn/ui": "workspace:^",
     "@talismn/util": "0.0.0-pr677-20230414083406",
     "bignumber.js": "^9.1.1",
@@ -78,6 +79,7 @@
     "threads": "^1.7.0",
     "uuid": "^9.0.0",
     "victory": "^36.6.8",
+    "viem": "^0.3.10",
     "web-vitals": "^2.1.4"
   },
   "devDependencies": {
@@ -117,16 +119,8 @@
     "storybook-preset-craco": "artisanofcode/storybook-preset-craco",
     "typescript": "^5.0.2"
   },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  }
+  "browserslist": [
+    "last 1 chrome version",
+    "last 1 firefox version"
+  ]
 }
