@@ -8943,6 +8943,7 @@ __metadata:
     ethers: ^6.2.3
     graphql: ^16.6.0
     graphql-request: ^5.2.0
+    multiformats: ^11.0.2
     typescript: ^5.0.2
     viem: ^0.2.0
   peerDependencies:
@@ -21982,6 +21983,13 @@ __metadata:
   bin:
     multicast-dns: cli.js
   checksum: 00b8a57df152d4cd0297946320a94b7c3cdf75a46a2247f32f958a8927dea42958177f9b7fdae69fab2e4e033fb3416881af1f5e9055a3e1542888767139e2fb
+  languageName: node
+  linkType: hard
+
+"multiformats@npm:^11.0.2":
+  version: 11.0.2
+  resolution: "multiformats@npm:11.0.2"
+  checksum: e587bbe709f29e42ae3c22458c960070269027d962183afc49a83b8ba26c31525e81ce2ac71082a52ba0a75e9aed4d0d044cac68d32656fdcd5cd340fb367fac
   languageName: node
   linkType: hard
 
