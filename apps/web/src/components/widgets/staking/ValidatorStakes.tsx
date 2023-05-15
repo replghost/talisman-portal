@@ -5,7 +5,7 @@ import { useRecoilValue, useRecoilValueLoadable, waitForAll } from 'recoil'
 import { useChainDeriveState, useChainQueryMultiState, useChainQueryState, useSubstrateApiState } from '@domains/common'
 import { useMemo } from 'react'
 import ValidatorStakeItem from './ValidatorStakeItem'
-import { useFastUnstakeEligibleAccountsState } from '@domains/fastUnstake/hooks'
+import { useInjectedUnexposedAccounts } from '@domains/fastUnstake/hooks'
 
 const useStakes = () => {
   const accounts = useRecoilValue(selectedSubstrateAccountsState)
@@ -54,13 +54,14 @@ const useStakesWithFastUnstake = () => {
     ])
   )
 
-  // This operation take upward to 30 seconds
-  // hence we return a loadable instead of suspending
-  const eligibleAccountsLoadable = useRecoilValueLoadable(useFastUnstakeEligibleAccountsState())
+  const eligibleAccountsLoadable = useInjectedUnexposedAccounts()
 
   return stakes.map((x, index) => ({
     ...x,
-    eligibleForFastUnstake: eligibleAccountsLoadable.valueMaybe()?.some(y => y.address === x.account.address),
+    eligibleForFastUnstake:
+      eligibleAccountsLoadable[x.account.address] &&
+      (x.stake.redeemable?.isZero() ?? true) &&
+      (x.stake.unlocking?.length ?? 0) === 0,
     potentiallyEligibleForFastUnstake: !erasToCheckPerBlock?.isZero() && x.reward === 0n,
     inFastUnstakeHead: fastUnstakeHead.unwrapOrDefault().stashes.some(y => y[0].eq(x.stake.accountId)),
     inFastUnstakeQueue: !queues[index]?.unwrapOrDefault().isZero() ?? false,

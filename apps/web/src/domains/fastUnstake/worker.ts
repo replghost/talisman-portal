@@ -1,29 +1,77 @@
 import { ApiPromise, WsProvider } from '@polkadot/api'
-import { range } from 'lodash'
-// @ts-expect-error
+import { encodeAddress } from '@polkadot/util-crypto'
+import { Observable } from 'rxjs'
 import { expose } from 'threads/worker'
+import { getErasToCheck } from './utils'
 
-export type WorkerModule = typeof module
+export type WorkerFunction = typeof getExposure
 
-const module = {
-  getExposedAccounts: async (endpoint: string | string[] | undefined, activeEra: number) => {
-    const api = await ApiPromise.create({ provider: new WsProvider(endpoint) })
+export type ExposureRecord = Record<number, Record<string, boolean>>
 
-    const startEraToCheck = activeEra - api.consts.staking.bondingDuration.toNumber()
+const generateExposure = async function* (
+  endpoint: string,
+  activeEra: number,
+  addresses: readonly string[],
+  precomputedExposure?: ExposureRecord
+) {
+  const api = await ApiPromise.create({ provider: new WsProvider(endpoint), initWasm: false })
+  const encodedAddresses = addresses.map(x => encodeAddress(x, api.registry.chainSS58))
 
-    const exposed = await Promise.all(
-      range(startEraToCheck, activeEra).map(era =>
-        api.query.staking.erasStakers
+  try {
+    const exposure = precomputedExposure ?? {}
+
+    for (const era of getErasToCheck(activeEra, api.consts.staking.bondingDuration.toNumber())) {
+      const eraExposure = exposure[era] ?? {}
+
+      const addressesToCheck = encodedAddresses.filter(address => !(address in eraExposure))
+
+      if (addressesToCheck.length > 0) {
+        const exposeds = await api.query.staking.erasStakers
           .entries(era)
-          .then(x => x.flatMap(([_, exposure]) => exposure.others.flatMap(({ who }) => who.toString())))
-          .then(array => new Set(array))
-      )
-    ).then(x => x.reduce((prev, curr) => new Set([...prev, ...curr])))
+          .then(x => new Set(x.flatMap(([_, exposure]) => exposure.others.flatMap(({ who }) => who.toString()))))
 
-    await api.disconnect()
+        for (const address of addressesToCheck) {
+          eraExposure[address] = exposeds.has(address)
+        }
+      }
 
-    return exposed
-  },
+      for (const [address, exposed] of Object.entries(eraExposure)) {
+        yield { era, address, exposed }
+      }
+
+      if (Object.values(eraExposure).every(exposed => exposed)) {
+        break
+      }
+    }
+  } catch (error) {
+    throw error
+  } finally {
+    api.disconnect()
+  }
 }
 
-expose(module)
+const getExposure = (
+  endpoint: string,
+  activeEra: number,
+  addresses: readonly string[],
+  precomputedExposure?: ExposureRecord
+) =>
+  new Observable<{ era: number; address: string; exposed: boolean }>(observer => {
+    const exposureGenerator = generateExposure(endpoint, activeEra, addresses, precomputedExposure)
+
+    ;(async () => {
+      try {
+        for await (const exposure of exposureGenerator) {
+          observer.next(exposure)
+        }
+      } catch (error) {
+        observer.error(error)
+      } finally {
+        observer.complete()
+      }
+    })()
+
+    return () => exposureGenerator.return()
+  })
+
+expose(getExposure)
